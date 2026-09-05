@@ -264,3 +264,6 @@ dotnet_naming_rule.types_members_must_be_capitalized.severity = warning
 
 resharper_csharp_keep_existing_initializer_arrangement = true
 resharper_wrap_before_primary_constructor_declaration_rpar = true
+
+#Microsoft Code Quality analyzers
+dotnet_diagnostic.CA1716.severity = none

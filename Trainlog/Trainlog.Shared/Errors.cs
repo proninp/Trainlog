@@ -1,0 +1,39 @@
+﻿using System.Collections;
+using System.Text.Json;
+using CSharpFunctionalExtensions;
+
+namespace Trainlog.Error;
+
+public sealed class Errors : IEnumerable<Error>, ICombine
+{
+    private readonly IReadOnlyList<Error> _errors;
+
+    public Errors(IReadOnlyList<Error> errors) => _errors = [.. errors];
+
+    public Errors(Error error) => _errors = [error];
+
+    public IEnumerator<Error> GetEnumerator() => _errors.GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    
+    public ICombine Combine(ICombine value)
+    {
+        if (value is Errors errors)
+            return new Errors(this.Concat(errors).ToList());
+
+        if (value is Error error)
+            return new Errors(this.Concat([error]).ToList());
+
+        return this;
+    }
+
+    public string Serialize() => JsonSerializer.Serialize(this);
+    
+    public static Errors? Deserialize(string json)
+    {
+        // System.Text.Json не умеет десериализовать JSON-массив в кастомный тип IEnumerable<T>
+        // без метода Add или реализации ICollection<T>
+        var list = JsonSerializer.Deserialize<List<Error>>(json);
+        return list is null ? null : new Errors(list);
+    }
+}

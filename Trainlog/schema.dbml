@@ -1,0 +1,137 @@
+// TrainLog — схема БД (PostgreSQL). Вставь в https://dbdiagram.io
+// Замени TrainLog на финальное имя проекта.
+//
+// Soft-delete: deleted_at (nullable) на корнях агрегатов.
+// «Активность» = предикат deleted_at IS NULL (в EF Core — глобальный query filter).
+// Partial-индексы (WHERE deleted_at IS NULL) DBML выразить не умеет —
+// они в миграции/DDL, см. пояснение к схеме.
+
+Enum experience_level {
+  beginner
+  intermediate
+  advanced
+}
+
+Enum training_goal {
+  strength
+  hypertrophy
+  endurance
+  weight_loss
+  general_fitness
+}
+
+Enum workout_source {
+  telegram
+  ios
+  api
+}
+
+Enum parse_status {
+  pending
+  parsed
+  failed
+}
+
+Enum recommendation_status {
+  proposed
+  accepted
+  dismissed
+}
+
+Enum muscle_group {
+  chest
+  back
+  shoulders
+  legs
+  arms
+  core
+  full_body
+}
+
+Enum exercise_category {
+  compound
+  isolation
+}
+
+Table users {
+  id bigint [pk, increment]
+  telegram_user_id bigint [not null, note: 'натуральный ключ из Telegram; partial-unique WHERE deleted_at IS NULL']
+  telegram_chat_id bigint [not null, note: 'куда слать сообщения']
+  name varchar(100)
+  age smallint [note: 'профиль опционален -> nullable']
+  body_weight_kg decimal(5,2)
+  experience experience_level
+  goal training_goal
+  health_notes text [note: 'ограничения/здоровье, свободный текст']
+  deleted_at timestamptz [note: 'soft-delete; NULL = живая строка']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table workouts {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id]
+  performed_on date [not null, note: 'дата тренировки (может извлечь ИИ)']
+  notes text [note: 'самочувствие/состояние, свободный текст']
+  raw_text text [not null, note: 'оригинальное сообщение пользователя']
+  source workout_source [not null, default: 'telegram']
+  parse_status parse_status [not null, default: 'parsed']
+  deleted_at timestamptz [note: 'soft-delete; NULL = живая строка']
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (user_id, performed_on) [name: 'ix_workouts_user_date', note: 'partial: WHERE deleted_at IS NULL']
+  }
+}
+
+Table workout_exercises {
+  id bigint [pk, increment]
+  workout_id bigint [not null, ref: > workouts.id]
+  exercise_id bigint [ref: > exercises.id, note: 'nullable: ссылка на каталог, если ИИ сопоставил']
+  exercise_name varchar(150) [not null, note: 'сырое имя как распознано ИИ']
+  position smallint [not null, note: 'порядок упражнения в тренировке']
+  notes text
+}
+
+Table exercise_sets {
+  id bigint [pk, increment]
+  workout_exercise_id bigint [not null, ref: > workout_exercises.id]
+  set_number smallint [not null]
+  reps smallint
+  weight_kg decimal(6,2) [note: 'null для упражнений с весом тела']
+  rpe decimal(3,1) [note: 'субъективная нагрузка, напр. 8.5']
+  duration_seconds int [note: 'для планок/кардио']
+}
+
+Table exercises {
+  id bigint [pk, increment]
+  canonical_name varchar(150) [not null, note: 'partial-unique WHERE deleted_at IS NULL']
+  muscle_group muscle_group
+  category exercise_category
+  deleted_at timestamptz [note: 'soft-delete; NULL = живая строка']
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table recommendations {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id]
+  rationale text [note: 'почему ИИ предложил именно это']
+  payload jsonb [not null, note: 'снимок предложенной тренировки (упражнения/подходы)']
+  status recommendation_status [not null, default: 'proposed', note: 'dismissed != deleted: dismissed = пользователь отклонил']
+  deleted_at timestamptz [note: 'soft-delete; NULL = живая строка']
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (user_id, created_at) [name: 'ix_reco_user_created', note: 'partial: WHERE deleted_at IS NULL']
+  }
+}
+
+Table conversation_states {
+  id bigint [pk, increment]
+  telegram_chat_id bigint [unique, not null, note: 'без soft-delete: эфемерное состояние, перезаписывается']
+  user_id bigint [ref: > users.id, note: 'nullable: связывается, когда создан профиль']
+  current_state varchar(60) [not null, note: 'имя состояния FSM, напр. awaiting_workout_text']
+  active_menu_message_id bigint [note: 'id последнего меню; для отсева нажатий по устаревшему меню']
+  context jsonb [note: 'черновые данные многошагового диалога']
+  updated_at timestamptz [not null, default: `now()`]
+}
