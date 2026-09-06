@@ -8,10 +8,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		CLAUDE.md = CLAUDE.md
-		Directory.Build.props = Directory.Build.props
-		Directory.Packages.props = Directory.Packages.props
 		docker-compose.dev.yml = docker-compose.dev.yml
 		schema.dbml = schema.dbml
+		Directory.Build.props = Directory.Build.props
+		Directory.Packages.props = Directory.Packages.props
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trainlog.Domain", "Trainlog.Domain\Trainlog.Domain.csproj", "{4ACEBF3E-A4CB-42AB-AAE7-E95F38FE90F4}"

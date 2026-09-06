@@ -14,7 +14,7 @@ public abstract class SoftDeletableEntity : BaseEntity, ISoftDeletable<Guid>
     public virtual void Restore()
     {
         if (!DeletedAt.HasValue) return;
-        UpdatedAt = DateTime.UtcNow;
+        Touch();
         DeletedAt = null;
     }
 }
