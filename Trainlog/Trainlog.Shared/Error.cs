@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace Trainlog.Error;
+namespace Trainlog.Shared;
 
 public record Error
 {
