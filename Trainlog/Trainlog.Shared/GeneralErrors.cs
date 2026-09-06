@@ -1,4 +1,4 @@
-﻿namespace Trainlog.Error;
+﻿namespace Trainlog.Shared;
 
 public static class GeneralErrors
 {

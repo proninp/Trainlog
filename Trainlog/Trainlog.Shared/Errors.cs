@@ -2,7 +2,7 @@
 using System.Text.Json;
 using CSharpFunctionalExtensions;
 
-namespace Trainlog.Error;
+namespace Trainlog.Shared;
 
 public sealed class Errors : IEnumerable<Error>, ICombine
 {
