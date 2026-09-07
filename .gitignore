@@ -59,6 +59,7 @@ nunit-*.xml
 # JetBrains Rider / IntelliJ
 .idea/
 *.sln.iml
+*.DotSettings.user
 
 
 CLAUDE.md

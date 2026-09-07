@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using CSharpFunctionalExtensions;
 using Trainlog.Domain.Entities.Base;
+using Trainlog.Domain.Entities.ValueObjects;
 using Trainlog.Domain.Enums;
 using Trainlog.Shared;
 
@@ -8,10 +9,6 @@ namespace Trainlog.Domain.Entities;
 
 public sealed class User : SoftDeletableEntity
 {
-    private const int NameMinLength = 2;
-
-    private const int NameMaxLength = 150;
-
     private const int AgeMin = 3;
 
     private const int AgeMax = 99;
@@ -37,7 +34,7 @@ public sealed class User : SoftDeletableEntity
         HealthNotes = userProfileDraft.HealthNotes;
     }
 
-    public string? Name { get; private set; }
+    public PersonName? Name { get; private set; }
 
     public short? Age { get; private set; }
 
@@ -57,8 +54,14 @@ public sealed class User : SoftDeletableEntity
         TrainingGoal? goal,
         string? healthNotes)
     {
-        var userDraft = new UserProfileDraft(name, age, bodyWeightKg, experience, goal, healthNotes);
+        var personNameResult = PersonName.Create(name);
+        if (personNameResult.IsFailure)
+            return personNameResult.Error;
+        
+        var userDraft = new UserProfileDraft(
+            personNameResult.Value, age, bodyWeightKg, experience, goal, healthNotes);
         userDraft = NormalizeFields(userDraft);
+
         var userValidationResult = ValidateUser(userDraft);
         if (userValidationResult.IsFailure)
             return Result.Failure<User, Errors>(userValidationResult.Error);
@@ -66,13 +69,19 @@ public sealed class User : SoftDeletableEntity
         return new User(userDraft);
     }
 
+    public static Result<User, Errors> Create()
+    {
+        var userDraft = new UserProfileDraft(
+            null, null, null, null, null, null);
+        return new User(userDraft);
+    }
+
     public UnitResult<Errors> ChangeName(string? name)
     {
-        name = NormalizeStringField(name);
-        var nameErrors = ValidateName(name);
-        if (nameErrors.Count > 0)
-            return UnitResult.Failure(nameErrors.ToErrors());
-        Name = name;
+        var personNameResult = PersonName.Create(name);
+        if (personNameResult.IsFailure)
+            return personNameResult.Error;
+        Name = personNameResult.Value;
         Touch();
         return UnitResult.Success<Errors>();
     }
@@ -133,7 +142,6 @@ public sealed class User : SoftDeletableEntity
     {
         var userErrors = new List<Error>();
 
-        userErrors.AddRange(ValidateName(userProfileDraft.Name));
         userErrors.AddRange(ValidateAge(userProfileDraft.Age));
         userErrors.AddRange(ValidateBodyWeight(userProfileDraft.BodyWeightKg));
         userErrors.AddRange(ValidateExperience(userProfileDraft.Experience));
@@ -143,22 +151,6 @@ public sealed class User : SoftDeletableEntity
         return userErrors.Count == 0
             ? UnitResult.Success<Errors>()
             : UnitResult.Failure(userErrors.ToErrors());
-    }
-
-    private static ReadOnlyCollection<Error> ValidateName(string? name)
-    {
-        var errors = new List<Error>();
-        if (name is null)
-            return errors.AsReadOnly();
-        var nameValidationResult =
-            FieldValidator.ValidateStringField(name, nameof(Name), NameMinLength, NameMaxLength);
-        if (nameValidationResult.IsFailure)
-            errors.AddRange(nameValidationResult.Error);
-        var nameCharsValidationResult = FieldValidator.ValidateAllowedNameChars(name, nameof(Name));
-        if (nameCharsValidationResult.IsFailure)
-            errors.AddRange(nameCharsValidationResult.Error);
-
-        return errors.AsReadOnly();
     }
 
     private static ReadOnlyCollection<Error> ValidateAge(short? age)
@@ -223,10 +215,7 @@ public sealed class User : SoftDeletableEntity
 
     private static UserProfileDraft NormalizeFields(UserProfileDraft draft)
     {
-        return draft with
-        {
-            Name = NormalizeStringField(draft.Name), HealthNotes = NormalizeStringField(draft.HealthNotes)
-        };
+        return draft with { HealthNotes = NormalizeStringField(draft.HealthNotes) };
     }
 
     private static string? NormalizeStringField(string? field)
@@ -238,7 +227,7 @@ public sealed class User : SoftDeletableEntity
     }
 
     private sealed record UserProfileDraft(
-        string? Name,
+        PersonName? Name,
         short? Age,
         decimal? BodyWeightKg,
         ExperienceLevel? Experience,
