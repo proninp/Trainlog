@@ -1,4 +1,5 @@
-﻿using CSharpFunctionalExtensions;
+﻿using System.Collections.ObjectModel;
+using CSharpFunctionalExtensions;
 using Trainlog.Domain.Entities.Base;
 using Trainlog.Domain.Enums;
 using Trainlog.Shared;
@@ -144,11 +145,11 @@ public sealed class User : SoftDeletableEntity
             : UnitResult.Failure(userErrors.ToErrors());
     }
 
-    private static List<Error> ValidateName(string? name)
+    private static ReadOnlyCollection<Error> ValidateName(string? name)
     {
         var errors = new List<Error>();
         if (name is null)
-            return errors;
+            return errors.AsReadOnly();
         var nameValidationResult =
             FieldValidator.ValidateStringField(name, nameof(Name), NameMinLength, NameMaxLength);
         if (nameValidationResult.IsFailure)
@@ -157,10 +158,10 @@ public sealed class User : SoftDeletableEntity
         if (nameCharsValidationResult.IsFailure)
             errors.AddRange(nameCharsValidationResult.Error);
 
-        return errors;
+        return errors.AsReadOnly();
     }
 
-    private static List<Error> ValidateAge(short? age)
+    private static ReadOnlyCollection<Error> ValidateAge(short? age)
     {
         var errors = new List<Error>();
         if (age is < AgeMin or > AgeMax)
@@ -169,10 +170,10 @@ public sealed class User : SoftDeletableEntity
                 $"Age must be between {AgeMin} and {AgeMax}"));
         }
 
-        return errors;
+        return errors.AsReadOnly();
     }
 
-    private static List<Error> ValidateBodyWeight(decimal? bodyWeightKg)
+    private static ReadOnlyCollection<Error> ValidateBodyWeight(decimal? bodyWeightKg)
     {
         var errors = new List<Error>();
         if (bodyWeightKg is < WeightMin or > WeightMax)
@@ -181,10 +182,10 @@ public sealed class User : SoftDeletableEntity
                 $"Weight must be between {WeightMin} and {WeightMax}"));
         }
 
-        return errors;
+        return errors.AsReadOnly();
     }
 
-    private static List<Error> ValidateExperience(ExperienceLevel? experience)
+    private static ReadOnlyCollection<Error> ValidateExperience(ExperienceLevel? experience)
     {
         var errors = new List<Error>();
         if (experience is not null && !Enum.IsDefined(experience.Value))
@@ -192,10 +193,10 @@ public sealed class User : SoftDeletableEntity
             errors.Add(GeneralErrors.ValueIsInvalid(nameof(Experience)));
         }
 
-        return errors;
+        return errors.AsReadOnly();
     }
 
-    private static List<Error> ValidateGoal(TrainingGoal? goal)
+    private static ReadOnlyCollection<Error> ValidateGoal(TrainingGoal? goal)
     {
         var errors = new List<Error>();
         if (goal is not null && !Enum.IsDefined(goal.Value))
@@ -203,21 +204,21 @@ public sealed class User : SoftDeletableEntity
             errors.Add(GeneralErrors.ValueIsInvalid(nameof(Goal)));
         }
 
-        return errors;
+        return errors.AsReadOnly();
     }
 
-    private static List<Error> ValidateHealthNotes(string? healthNotes)
+    private static ReadOnlyCollection<Error> ValidateHealthNotes(string? healthNotes)
     {
         var errors = new List<Error>();
         if (healthNotes is null)
-            return errors;
+            return errors.AsReadOnly();
         var healthNotesValidationResult =
             FieldValidator.ValidateStringField(healthNotes, nameof(HealthNotes), HealthNotesMinLength,
                 HealthNotesMaxLength);
         if (healthNotesValidationResult.IsFailure)
             errors.AddRange(healthNotesValidationResult.Error);
 
-        return errors;
+        return errors.AsReadOnly();
     }
 
     private static UserProfileDraft NormalizeFields(UserProfileDraft draft)

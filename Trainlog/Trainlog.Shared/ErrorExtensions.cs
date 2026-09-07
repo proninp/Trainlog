@@ -4,5 +4,5 @@ public static class ErrorExtensions
 {
     public static Errors ToErrors(this Error error) => new([error]);
     
-    public static Errors ToErrors(this List<Error> errors) => new([..errors]);
+    public static Errors ToErrors(this IEnumerable<Error> errors) => new([..errors]);
 }
